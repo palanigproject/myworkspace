@@ -1,0 +1,64 @@
+services:
+  mcp-server:
+    build:
+      context: ./mcp-server
+    container_name: myworkspace-mcp-server
+    environment:
+      APP_NAME: MCP Server
+      APP_ENV: development
+      APP_PORT: 8000
+      LOG_LEVEL: INFO
+      PROJECT_SERVICE_URL: http://project-service:8001
+      SLACK_SERVICE_URL: http://slack-service:8002
+      HTTP_TIMEOUT: 10
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost:8080
+    ports:
+      - "8000:8000"
+    depends_on:
+      - project-service
+    restart: unless-stopped
+
+  project-service:
+    build:
+      context: ./project-service
+    container_name: myworkspace-project-service
+    environment:
+      APP_NAME: Project Service
+      APP_ENV: development
+      APP_PORT: 8001
+      LOG_LEVEL: INFO
+      CONVEX_PROJECTS_URL: https://convexpro.in/waterfall/projects?option=null&statusId=null&search=&pageNo=0&pageSize=200&column=&value=
+      HTTP_TIMEOUT: 12
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+
+  slack-service:
+    build:
+      context: ./slack-service
+    container_name: myworkspace-slack-service
+    environment:
+      APP_NAME: Slack Service
+      APP_ENV: development
+      APP_PORT: 8002
+      LOG_LEVEL: INFO
+      MCP_SERVER_URL: http://mcp-server:8000
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      HTTP_TIMEOUT: 10
+    ports:
+      - "8002:8002"
+    depends_on:
+      - mcp-server
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_MCP_BASE_URL: ${VITE_MCP_BASE_URL:-http://localhost:8000}
+    container_name: myworkspace-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - mcp-server
+    restart: unless-stopped

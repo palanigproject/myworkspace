@@ -1,0 +1,98 @@
+:root {
+  color-scheme: light;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f4f7fb;
+  color: #111827;
+}
+
+.app-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.header p {
+  margin: 0.5rem 0 1.5rem;
+  color: #4b5563;
+}
+
+.actions {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.prompt-label {
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.actions textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.7rem 0.8rem;
+  font-size: 0.95rem;
+  font-family: Arial, sans-serif;
+  color: #111827;
+  box-sizing: border-box;
+}
+
+.actions button {
+  border: none;
+  background: #2563eb;
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.actions button:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+.answer {
+  color: #1d4ed8;
+  margin: 0;
+  font-weight: 600;
+}
+
+.error {
+  color: #b91c1c;
+  margin-top: 1rem;
+}
+
+.empty-state {
+  color: #6b7280;
+  margin-top: 1rem;
+}
+
+.response-card {
+  margin-top: 1rem;
+  background: #ffffff;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+}
+
+.answer-list {
+  margin: 0.75rem 0 0;
+  padding-left: 1.2rem;
+  color: #1f2937;
+}
+
+.answer-list li {
+  margin: 0.45rem 0;
+}
