@@ -5,12 +5,24 @@ const mcpApi = axios.create({
   timeout: 10000,
 });
 
-export async function fetchProjectsViaMCP() {
+async function executeMcpTool(name, input = {}) {
   const response = await mcpApi.post("/mcp/tools", {
-    name: "get_projects",
-    input: {},
+    name,
+    input,
   });
   return response.data;
+}
+
+export async function fetchProjectsViaMCP() {
+  return executeMcpTool("get_projects", {});
+}
+
+export async function fetchSlackChannelHistoryViaMCP(input = {}) {
+  return executeMcpTool("get_slack_channel_history", input);
+}
+
+export async function fetchSlackChannelsViaMCP(input = {}) {
+  return executeMcpTool("get_slack_channels", input);
 }
 
 function normalizeValue(value) {
@@ -19,6 +31,7 @@ function normalizeValue(value) {
 
 function formatProjectSummary(project) {
   return {
+    type: "project",
     id: project?.id || "",
     name: project?.name || "Unknown project",
     status: project?.status || "Unknown",
@@ -29,6 +42,34 @@ function formatProjectSummary(project) {
 function parsePrompt(prompt) {
   const query = (prompt || "").trim();
   const lowerQuery = query.toLowerCase();
+  if (
+    lowerQuery.includes("messages on this") ||
+    lowerQuery.includes("messages on channel") ||
+    lowerQuery.includes("messages in channel") ||
+    lowerQuery.includes("history on") ||
+    lowerQuery.includes("history of")
+  ) {
+    const quotedMatch = query.match(/(?:messages\s+(?:on\s+this|on|in)\s+(?:channel\s+)?)"([^"]+)"/i);
+    if (quotedMatch?.[1]) {
+      return { type: "slack_history_channel", channel: quotedMatch[1].trim() };
+    }
+
+    const plainMatch = query.match(/(?:messages\s+(?:on\s+this|on|in)\s+(?:channel\s+)?|history\s+(?:on|of)\s+)(.+)$/i);
+    if (plainMatch?.[1]) {
+      return { type: "slack_history_channel", channel: plainMatch[1].trim().replace(/[?.!]+$/, "") };
+    }
+  }
+
+  if (
+    lowerQuery.includes("channels available") ||
+    lowerQuery.includes("channels are currently") ||
+    lowerQuery.includes("channels currently") ||
+    (lowerQuery.includes("what are the channels") && !lowerQuery.includes("messages")) ||
+    lowerQuery.includes("list channels")
+  ) {
+    return { type: "slack_channels" };
+  }
+
 
   if (!query) {
     return { type: "list" };
@@ -62,13 +103,94 @@ function parsePrompt(prompt) {
     return { type: "list" };
   }
 
+  if (lowerQuery.includes("convex")) {
+    return { type: "list" };
+  }
+
+  if (
+    lowerQuery.includes("slack") &&
+    (lowerQuery.includes("channel") ||
+      lowerQuery.includes("message") ||
+      lowerQuery.includes("history") ||
+      lowerQuery.includes("budget") ||
+      lowerQuery.includes("trial"))
+  ) {
+    return { type: "slack_history" };
+  }
+
   return { type: "unknown" };
 }
 
 export async function queryProjectsViaMCP(prompt) {
+  const intent = parsePrompt(prompt);
+
+  if (intent.type === "slack_channels") {
+    const channelsResult = await fetchSlackChannelsViaMCP({});
+    const channelsData = channelsResult?.data?.result?.channels ?? {};
+    const channels = Array.isArray(channelsData?.channels) ? channelsData.channels : [];
+    const details = channels.map((channel, index) => ({
+      type: "slack_channel",
+      id: channel?.id || `${index}`,
+      name: channel?.name || "unknown-channel",
+      topic: channel?.topic?.value || "",
+      purpose: channel?.purpose?.value || "",
+      members_count: channel?.num_members ?? 0,
+      is_private: Boolean(channel?.is_private),
+    }));
+
+    if (channelsData?.ok !== true) {
+      return {
+        projects: [],
+        answer: `Unable to fetch Slack channels: ${channelsData?.error || "Unknown Slack API error"}.`,
+        details: [],
+        intent: "slack_channels",
+      };
+    }
+
+    return {
+      projects: [],
+      answer: `There are ${details.length} active Slack channel(s) currently available.`,
+      details,
+      intent: "slack_channels",
+    };
+  }
+
+  if (intent.type === "slack_history" || intent.type === "slack_history_channel") {
+    const toolInput = intent.type === "slack_history_channel" ? { channel: intent.channel } : {};
+    const slackResult = await fetchSlackChannelHistoryViaMCP(toolInput);
+    const history = slackResult?.data?.result?.history ?? {};
+    const messages = Array.isArray(history?.messages) ? history.messages : [];
+    const details = messages.map((message, index) => ({
+      type: "slack_message",
+      id: message?.ts || `${index}`,
+      user: message?.user || message?.username || message?.bot_id || "Unknown",
+      text: message?.text || "(no text)",
+      ts: message?.ts || "",
+      subtype: message?.subtype || "",
+    }));
+
+    if (history?.ok !== true) {
+      return {
+        projects: [],
+        answer: `Unable to fetch Slack channel history: ${history?.error || "Unknown Slack API error"}.`,
+        details: [],
+        intent: intent.type,
+      };
+    }
+
+    return {
+      projects: [],
+      answer:
+        intent.type === "slack_history_channel"
+          ? `Fetched ${details.length} message(s) from Slack channel ${intent.channel}.`
+          : `Fetched ${details.length} Slack message(s) from the configured channel.`,
+      details,
+      intent: intent.type,
+    };
+  }
+
   const result = await fetchProjectsViaMCP();
   const projects = result?.data?.projects ?? [];
-  const intent = parsePrompt(prompt);
 
   if (intent.type === "list") {
     const details = projects.map((project) => formatProjectSummary(project));
@@ -139,7 +261,7 @@ export async function queryProjectsViaMCP(prompt) {
   return {
     projects,
     answer:
-      'Try one of these prompts: 1) what is the status of "Groomer Incentive Phase 2" 2) What projects are assigned to "Praveen Selvam" 3) List out the projects.',
+      'Try one of these prompts: 1) what is the status of "Groomer Incentive Phase 2" 2) What projects are assigned to "Praveen Selvam" 3) List out the projects 4) What are the channels available 5) What are the messages on this "general".',
     details: [],
     intent: "unknown",
   };

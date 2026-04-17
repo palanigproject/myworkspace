@@ -46,7 +46,7 @@ function App() {
           rows={3}
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
-          placeholder='Try: what is the status of "Groomer Incentive Phase 2"'
+          placeholder='Try: What are the channels available OR What are the messages on this "general"'
         />
         <button onClick={() => handleAsk(prompt)} disabled={loading}>
           {loading ? "Processing..." : "Submit"}
@@ -67,8 +67,21 @@ function App() {
             <ul className="answer-list">
               {answerDetails.map((detail, index) => (
                 <li key={`${detail.id || detail.name}-${index}`}>
-                  <strong>{detail.name}</strong> is currently <strong>{detail.status}</strong> and owned by{" "}
-                  {detail.owner}.
+                  {detail.type === "slack_message" ? (
+                    <>
+                      <strong>{detail.user}</strong>: {detail.text}
+                    </>
+                  ) : detail.type === "slack_channel" ? (
+                    <>
+                      <strong>{detail.name}</strong> ({detail.id}) - {detail.is_private ? "Private" : "Public"}{" "}
+                      channel with {detail.members_count} member(s).
+                    </>
+                  ) : (
+                    <>
+                      <strong>{detail.name}</strong> is currently <strong>{detail.status}</strong> and owned by{" "}
+                      {detail.owner}.
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

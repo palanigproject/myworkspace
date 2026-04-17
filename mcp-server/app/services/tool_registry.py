@@ -17,6 +17,8 @@ class ToolRegistry:
         self.tools: dict[str, ToolHandler] = {
             "get_projects": self._get_projects,
             "slack_send_message": self._slack_send_message,
+            "get_slack_channel_history": self._get_slack_channel_history,
+            "get_slack_channels": self._get_slack_channels,
         }
 
     async def execute(self, name: str, input_payload: dict[str, Any]) -> Any:
@@ -31,3 +33,9 @@ class ToolRegistry:
 
     async def _slack_send_message(self, payload: dict[str, Any]) -> Any:
         return await self.slack_client.send_message(payload)
+
+    async def _get_slack_channel_history(self, payload: dict[str, Any]) -> Any:
+        return await self.slack_client.get_channel_history(payload)
+
+    async def _get_slack_channels(self, payload: dict[str, Any]) -> Any:
+        return await self.slack_client.list_channels(payload)

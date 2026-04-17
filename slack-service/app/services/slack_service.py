@@ -1,6 +1,7 @@
 import logging
 
 from app.clients.mcp_client import MCPClient
+from app.clients.slack_api_client import SlackApiClient
 from app.clients.slack_webhook_client import SlackWebhookClient
 
 logger = logging.getLogger(__name__)
@@ -9,6 +10,7 @@ logger = logging.getLogger(__name__)
 class SlackService:
     def __init__(self) -> None:
         self.mcp_client = MCPClient()
+        self.slack_api_client = SlackApiClient()
         self.webhook_client = SlackWebhookClient()
 
     async def process_event(self, event_type: str, payload: dict) -> dict:
@@ -35,6 +37,17 @@ class SlackService:
             fallback = "Unsupported slash command."
             await self.webhook_client.send_message(fallback)
             return {"handled": False, "message": fallback}
+
+        if event_type == "channel_history":
+            channel_id = payload.get("channel_id") or payload.get("channel")
+            limit = payload.get("limit")
+            history = await self.slack_api_client.fetch_channel_history(channel_id=channel_id, limit=limit)
+            return {"handled": bool(history.get("ok")), "history": history}
+
+        if event_type == "channel_list":
+            limit = payload.get("limit")
+            channels = await self.slack_api_client.list_channels(limit=limit)
+            return {"handled": bool(channels.get("ok")), "channels": channels}
 
         logger.warning("Unknown event_type received: %s", event_type)
         return {"handled": False, "message": f"Unknown event_type: {event_type}"}
