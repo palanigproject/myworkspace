@@ -247,12 +247,12 @@ $projectStartCommand = "Set-Location '$projectPath'; if (-not (Test-Path '.\.ven
 $slackStartCommand = "Set-Location '$slackPath'; if (-not (Test-Path '.\.venv\Scripts\Activate.ps1')) { python -m venv .venv }; & '.\.venv\Scripts\Activate.ps1'; pip install -r requirements.txt; if (-not (Test-Path '.env')) { Copy-Item .env.example .env }; uvicorn app.main:app --host 0.0.0.0 --port 8002"
 $frontendStartCommand = "Set-Location '$frontendPath'; if (-not (Test-Path '.env')) { Copy-Item .env.example .env }; if (-not (Test-Path '.\node_modules')) { npm install }; npm run dev"
 
-Ensure-LocalhostServiceUrls -McpPath $mcpPath -SlackPath $slackPath
+# Ensure-LocalhostServiceUrls -McpPath $mcpPath -SlackPath $slackPath
 
 Write-Host "`n[0/4] Restarting services (fresh start)..." -ForegroundColor Yellow
 Restart-ServiceOnPort -ServiceName "MCP Server" -Port 8000 -Command $mcpStartCommand -HealthUrl "http://localhost:8000/health" -ExpectedHealthService "mcp-server"
-Restart-ServiceOnPort -ServiceName "Project Service" -Port 8001 -Command $projectStartCommand -HealthUrl "http://localhost:8001/health" -ExpectedHealthService "project-service"
-Restart-ServiceOnPort -ServiceName "Slack Service" -Port 8002 -Command $slackStartCommand -HealthUrl "http://localhost:8002/health" -ExpectedHealthService "slack-service"
+# Restart-ServiceOnPort -ServiceName "Project Service" -Port 8001 -Command $projectStartCommand -HealthUrl "http://localhost:8001/health" -ExpectedHealthService "project-service"
+# Restart-ServiceOnPort -ServiceName "Slack Service" -Port 8002 -Command $slackStartCommand -HealthUrl "http://localhost:8002/health" -ExpectedHealthService "slack-service"
 
 if (Test-PortOpen -Port 5173) {
     Write-Host "Frontend (Vite) already running on port 5173. Restarting it..." -ForegroundColor Yellow
@@ -269,12 +269,12 @@ Wait-ForPort -Port 5173 -ServiceName "Frontend (Vite)"
 
 Write-Host "`n[1/4] Health checks..." -ForegroundColor Yellow
 $mcpHealth = Invoke-RestMethod "http://localhost:8000/health"
-$projectHealth = Invoke-RestMethod "http://localhost:8001/health"
-$slackHealth = Invoke-RestMethod "http://localhost:8002/health"
+# $projectHealth = Invoke-RestMethod "http://localhost:8001/health"
+# $slackHealth = Invoke-RestMethod "http://localhost:8002/health"
 
 $mcpHealth
-$projectHealth
-$slackHealth
+# $projectHealth
+# $slackHealth
 
 Write-Host "`n[2/4] MCP -> Project Service (get_projects)..." -ForegroundColor Yellow
 $mcpProjects = Invoke-JsonPostWithRetry -Uri "http://localhost:8000/mcp/tools" -Body @{
@@ -284,8 +284,9 @@ $mcpProjects = Invoke-JsonPostWithRetry -Uri "http://localhost:8000/mcp/tools" -
 $mcpProjects
 Write-Host "Project count via MCP: $($mcpProjects.data.count)" -ForegroundColor Green
 
-Write-Host "`n[3/4] Slack Service -> MCP -> Project Service (/projects)..." -ForegroundColor Yellow
 $stepFailures = @()
+
+<# Write-Host "`n[3/4] Slack Service -> MCP -> Project Service (/projects)..." -ForegroundColor Yellow
 try {
     $slashResult = Invoke-JsonPostWithRetry -Uri "http://localhost:8002/slack/events" -Body @{
         event_type = "slash_command"
@@ -315,7 +316,7 @@ catch {
     $detail = Get-RestErrorDetail -ErrorRecord $_
     Write-Host "Step [4/4] failed: $detail" -ForegroundColor Red
     $stepFailures += "Step [4/4] failed: $detail"
-}
+} #>
 
 Write-Host "`nSmoke test completed." -ForegroundColor Cyan
 Write-Host "Note: If SLACK_WEBHOOK_URL is not configured, Slack delivery may be reported as not delivered (expected)." -ForegroundColor DarkYellow

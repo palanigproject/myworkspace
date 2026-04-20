@@ -9,11 +9,10 @@ Production-ready microservices workspace with:
 
 ## Architecture
 
-All tool/service communication is routed through MCP:
+All tool communication is routed through MCP:
 
-- Frontend -> MCP Server -> Project Service
-- Slack Service -> MCP Server -> Project Service
-- MCP tool `slack_send_message` -> Slack Service
+- Frontend -> MCP Server -> Chat API (`https://chatbotinsightsdev.ckdigital.in/api/chat`)
+- MCP tools attach bearer auth and send `query`/`feature` form data
 
 No direct frontend calls to `project-service`.
 
@@ -21,17 +20,22 @@ No direct frontend calls to `project-service`.
 
 `POST /mcp/tools`
 
-Supported tools:
+Supported tools (mapped to prompt requests):
 
-- `get_projects` -> calls `project-service`
-- `slack_send_message` -> calls `slack-service`
+- `get_projects` -> sends prompt with project context
+- `slack_send_message` -> sends prompt with slack context
+- `get_slack_channel_history` -> sends prompt with slack context
+- `get_slack_channels` -> sends prompt with slack context
 
 Sample request:
 
 ```json
 {
-  "name": "get_projects",
-  "input": {}
+  "name": "get_slack_channels",
+  "input": {
+    "query": "list out channel",
+    "feature": "slack"
+  }
 }
 ```
 

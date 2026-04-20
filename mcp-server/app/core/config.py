@@ -11,9 +11,12 @@ class Settings(BaseSettings):
     app_env: str = Field(default="development", alias="APP_ENV")
     app_port: int = Field(default=8000, alias="APP_PORT")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
-    project_service_url: str = Field(default="http://project-service:8001", alias="PROJECT_SERVICE_URL")
-    slack_service_url: str = Field(default="http://slack-service:8002", alias="SLACK_SERVICE_URL")
-    http_timeout: float = Field(default=10.0, alias="HTTP_TIMEOUT")
+    chat_api_url: str = Field(
+        default="https://chatbotinsightsdev.ckdigital.in/api/chat",
+        alias="CHAT_API_URL",
+    )
+    chat_api_bearer_token: str = Field(default="dummy-bearer-token", alias="CHAT_API_BEARER_TOKEN")
+    http_timeout: float = Field(default=30.0, alias="HTTP_TIMEOUT")
     allowed_origins: str = Field(default="http://localhost:5173", alias="ALLOWED_ORIGINS")
 
 
